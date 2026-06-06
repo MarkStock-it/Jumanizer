@@ -9,7 +9,7 @@ A Chrome/Safari browser extension that transforms AI-generated text into natural
 - Click "Humanize" or use the context menu
 - Get naturally rewritten text that sounds human
 
-🎯 **Smart rewriting that follows these rules:**
+Smart rewriting that follows these rules:**
 - Varies sentence length (short punchy + longer ones)
 - Removes formal/robotic phrasing
 - Adds natural transitions ("honestly", "to be fair", "look,")
@@ -17,7 +17,7 @@ A Chrome/Safari browser extension that transforms AI-generated text into natural
 - Eliminates AI tells: em-dashes, "delve", "certainly", "I'd be happy to", etc.
 - Outputs text that sounds like a real person wrote it
 
-⚙️ **Simple setup**
+ Simple setup**
 - Just add your Anthropic API key to the options page
 - Enable/disable with a toggle
 - Works on any webpage
