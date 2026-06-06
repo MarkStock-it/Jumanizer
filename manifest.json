@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Jumanizer",
+  "version": "1.0.0",
+  "description": "Humanize AI-generated text with a single click",
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Jumanizer"
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text x='8' y='12' font-size='14' font-weight='bold' text-anchor='middle' fill='%23333'>J</text></svg>",
+    "48": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><text x='24' y='36' font-size='42' font-weight='bold' text-anchor='middle' fill='%23333'>J</text></svg>",
+    "128": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><text x='64' y='96' font-size='112' font-weight='bold' text-anchor='middle' fill='%23333'>J</text></svg>"
+  }
+}
