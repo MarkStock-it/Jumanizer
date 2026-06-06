@@ -85,21 +85,21 @@ Jumanizer/
 
 ## How It Works
 
-1. **Content Script** (`content.js`): 
+1. Content Script (`content.js`): 
    - Listens for text selection on any webpage
    - Injects the humanize button above selected text
    - Sends selection to the background script
 
-2. **Service Worker** (`background.js`):
+2. Service Worker (`background.js`):
    - Receives text selection requests
    - Calls the Anthropic Claude API
    - Returns the humanized text
 
-3. **Text Replacement**:
+3. Text Replacement:
    - The humanized text replaces the selected text directly
    - No dialogs or extra steps
 
-4. **Storage**:
+4. Storage:
    - API key is stored in `chrome.storage.sync`
    - Syncs across your Chrome devices if you're signed in
 
@@ -183,4 +183,4 @@ If you hit issues:
 
 ---
 
-**Made with ✨ for humanizing AI text**
+**Made with  for humanizing AI text**
