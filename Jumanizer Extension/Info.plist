@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionDisplayName</key>
+        <string>Jumanizer</string>
+        <key>NSExtensionIdentifier</key>
+        <string>com.markstock.jumanizer.extension</string>
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.Safari.extension</string>
+        <key>NSExtensionAttributes</key>
+        <dict>
+            <key>SFSafariAppExtensionBundleIdentifier</key>
+            <string>com.markstock.jumanizer</string>
+            <key>SFSafariContentScript</key>
+            <array>
+                <dict>
+                    <key>Script</key>
+                    <string>content.js</string>
+                </dict>
+            </array>
+            <key>SFSafariWebsiteAccess</key>
+            <dict>
+                <key>Level</key>
+                <string>All</string>
+            </dict>
+        </dict>
+    </dict>
+</dict>
+</plist>
