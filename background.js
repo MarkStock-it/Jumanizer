@@ -1,6 +1,7 @@
 // Service Worker - handles API calls and context menu
-const API_ENDPOINT = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-sonnet-4-20250514';
+const API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const API_VERSION = 'v1beta';
+const MODEL = 'gemini-2.0-flash';
 
 // Create context menu on install/update
 chrome.runtime.onInstalled.addListener(() => {
@@ -55,33 +56,48 @@ Return ONLY the rewritten text, no explanations or meta-commentary.`;
 
   const userPrompt = `Humanize this text:\n\n${text}`;
 
-  const response = await fetch(API_ENDPOINT, {
+  const endpoint = `${API_ENDPOINT}?key=${apiKey}`;
+
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [
+      system_instruction: {
+        parts: {
+          text: systemPrompt
+        }
+      },
+      contents: [
         {
           role: 'user',
-          content: userPrompt
+          parts: [
+            {
+              text: userPrompt
+            }
+          ]
         }
-      ]
+      ],
+      generation_config: {
+        max_output_tokens: 2048,
+        temperature: 0.7
+      }
     })
   });
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.error?.message || 'API request failed');
+    const errorMsg = errorData.error?.message || errorData.message || 'API request failed';
+    throw new Error(errorMsg);
   }
 
   const data = await response.json();
-  const humanized = data.content[0].text.trim();
+  const humanized = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  
+  if (!humanized) {
+    throw new Error('No response from API');
+  }
 
   // Send back to content script to replace text
   chrome.tabs.sendMessage(tabId, {

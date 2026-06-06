@@ -106,9 +106,11 @@ Jumanizer/
 ## API Usage
 
 The extension uses:
-- **Model**: Claude Sonnet 4 (`claude-sonnet-4-20250514`)
+- **Model**: Gemini 2.0 Flash (`gemini-2.0-flash`)
+- **API Version**: v1beta
 - **Max tokens**: 2,048 per request
-- **API costs**: Varies by text length (check [Anthropic pricing](https://www.anthropic.com/pricing))
+- **Temperature**: 0.7 (balanced creativity & stability)
+- **API costs**: Check [Google AI Studio pricing](https://ai.google.dev/pricing)
 
 ## Tips for Best Results
 
