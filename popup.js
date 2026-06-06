@@ -77,10 +77,10 @@ HOW TO USE JUMANIZER:
    - Direct replacement in the page
 
 SETUP:
-   - Go to Options and enter your Anthropic API key
-   - Get one at: console.anthropic.com/account/keys
+   - Go to Options and enter your Google Gemini API key
+   - Get one at: aistudio.google.com/apikey
 
-The extension uses Claude Sonnet 4 to humanize text.
+The extension uses Google Gemini 2.0 Flash API to humanize text.
   `;
   
   alert(helpText);

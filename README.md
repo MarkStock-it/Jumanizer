@@ -38,16 +38,16 @@ A Chrome/Safari browser extension that transforms AI-generated text into natural
 ## Setup
 
 ### Get Your API Key
-1. Visit [console.anthropic.com](https://console.anthropic.com)
-2. Sign in (create an account if needed)
-3. Go to "Account" → "API Keys"
+1. Visit [Google AI Studio](https://aistudio.google.com)
+2. Sign in with your Google account
+3. Click "Get API Key"
 4. Create a new API key
 5. Copy the key
 
 ### Configure the Extension
 1. Click the Jumanizer icon in your browser toolbar
 2. Click "Options"
-3. Paste your API key into the "Anthropic API Key" field
+3. Paste your Google Gemini API key into the "Google Gemini API Key" field
 4. Click "Save Settings"
 5. Enable the extension if it's not already on
 
@@ -129,8 +129,8 @@ The extension uses:
 ## Troubleshooting
 
 ### "API key not configured"
-- Go to Options and paste your API key
-- Make sure it starts with `sk-ant-`
+- Go to Options and paste your Google Gemini API key
+- Make sure it starts with `AIza`
 
 ### Text isn't being replaced
 - Make sure the extension is enabled
@@ -144,15 +144,15 @@ The extension uses:
 
 ### API errors
 - Check your API key is correct
-- Make sure you have remaining credits in your Anthropic account
+- Make sure your Google account has API access enabled
 - Check your internet connection
 
 ## Privacy & Security
 
 - Your API key is stored locally in Chrome's encrypted storage
-- Text is sent to Anthropic's API for processing
-- No data is stored on any server
-- Review [Anthropic's privacy policy](https://www.anthropic.com/privacy)
+- Text is sent to Google's Gemini API for processing
+- No data is stored on any server beyond Google's API
+- Review [Google's privacy policy](https://policies.google.com/privacy)
 
 ## Development
 
