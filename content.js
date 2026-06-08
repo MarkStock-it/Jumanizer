@@ -1,18 +1,38 @@
 // Content Script - handles selection replacement and UI messages
+let lastSelectionRange = null;
+
+function storeCurrentSelection() {
+  const selection = window.getSelection();
+  if (!selection || !selection.rangeCount) return;
+  const selectedText = selection.toString().trim();
+  if (!selectedText) return;
+
+  lastSelectionRange = selection.getRangeAt(0).cloneRange();
+}
+
+document.addEventListener('selectionchange', storeCurrentSelection);
+document.addEventListener('contextmenu', storeCurrentSelection);
 
 function replaceSelectedText(humanizedText) {
   removeLoadingIndicator();
 
+  let range = null;
   const selection = window.getSelection();
-  if (!selection || !selection.rangeCount) return;
+  if (selection && selection.rangeCount) {
+    range = selection.getRangeAt(0);
+  }
+  if (!range && lastSelectionRange) {
+    range = lastSelectionRange.cloneRange();
+  }
+  if (!range) return;
 
   try {
-    const range = selection.getRangeAt(0);
     range.deleteContents();
     const textNode = document.createTextNode(humanizedText);
     range.insertNode(textNode);
 
     window.getSelection().removeAllRanges();
+    lastSelectionRange = null;
   } catch (error) {
     console.error('Error replacing text:', error);
     showErrorMessage('Could not replace text. Please try again.');
