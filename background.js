@@ -1,7 +1,17 @@
 // Service Worker - handles API calls and context menu
-const API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 const API_VERSION = 'v1beta';
-const MODEL = 'gemini-2.0-flash';
+// Models to try in order of preference
+const MODELS_TO_TRY = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-pro'
+];
+
+function getApiEndpoint(model = MODELS_TO_TRY[0]) {
+  return `https://generativelanguage.googleapis.com/${API_VERSION}/models/${model}:generateContent`;
+}
+
+const API_ENDPOINT = getApiEndpoint();
 
 // Create context menu on install/update
 chrome.runtime.onInstalled.addListener(() => {
@@ -68,9 +78,12 @@ Return ONLY the rewritten text, no explanations or meta-commentary.`;
 
   const userPrompt = `Humanize this text:\n\n${text}`;
 
-  const endpoint = `${API_ENDPOINT}?key=${apiKey}`;
-
-  const response = await fetch(endpoint, {
+  // Try each model in order until one works
+  let lastError = null;
+  for (const model of MODELS_TO_TRY) {
+    try {
+      const endpoint = `${getApiEndpoint(model)}?key=${apiKey}`;
+      const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -98,35 +111,55 @@ Return ONLY the rewritten text, no explanations or meta-commentary.`;
     })
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    const rawMessage = errorData.error?.message || errorData.message || 'API request failed';
-    const normalized = String(rawMessage).toLowerCase();
+      if (!response.ok) {
+        const errorData = await response.json();
+        const rawMessage = errorData.error?.message || errorData.message || 'API request failed';
+        const normalized = String(rawMessage).toLowerCase();
 
-    let errorMsg = rawMessage;
-    if (normalized.includes('quota exceeded') || normalized.includes('rate limit')) {
-      errorMsg = 'Quota exceeded. Check your Google API plan, billing, or usage limits for Gemini.';
-    } else if (normalized.includes('invalid api key') || normalized.includes('api key not valid') || normalized.includes('key invalid')) {
-      errorMsg = 'API key invalid. Please update your key in the extension options.';
+        // Check if it's a model-not-found error, try next model
+        if (normalized.includes('model') || normalized.includes('not found')) {
+          lastError = new Error(`Model ${model} not available, trying next...`);
+          continue; // Try next model
+        }
+
+        let errorMsg = rawMessage;
+        if (normalized.includes('quota exceeded') || normalized.includes('rate limit')) {
+          errorMsg = 'Quota exceeded. Check your Google API plan, billing, or usage limits for Gemini.';
+        } else if (normalized.includes('invalid api key') || normalized.includes('api key not valid') || normalized.includes('key invalid')) {
+          errorMsg = 'API key invalid. Please update your key in the extension options.';
+        }
+
+        throw new Error(errorMsg);
+      }
+
+      const data = await response.json();
+      const humanized = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      
+      if (!humanized) {
+        throw new Error('No response from API');
+      }
+
+      // Send back to content script to replace text
+      chrome.tabs.sendMessage(tabId, {
+        action: 'replaceText',
+        elementId,
+        originalText: text,
+        humanizedText: humanized
+      });
+      
+      return humanized; // Success with this model
+    } catch (error) {
+      // If it's not a model-not-found error, throw immediately
+      if (!error.message.includes('Model') || !error.message.includes('trying next')) {
+        throw error;
+      }
+      lastError = error;
+      // Continue to next model
     }
-
-    throw new Error(errorMsg);
   }
-
-  const data = await response.json();
-  const humanized = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
   
-  if (!humanized) {
-    throw new Error('No response from API');
-  }
-
-  // Send back to content script to replace text
-  chrome.tabs.sendMessage(tabId, {
-    action: 'replaceText',
-    elementId,
-    originalText: text,
-    humanizedText: humanized
-  });
+  // If we get here, no models worked
+  throw new Error(lastError?.message || 'All Gemini models failed. Please check your API access.');
 
   return humanized;
 }
