@@ -15,7 +15,19 @@ chrome.runtime.onInstalled.addListener(() => {
 // Context menu click handler
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'humanizeText' && info.selectionText) {
-    humanizeAndReplace(tab.id, info.selectionText);
+    chrome.storage.sync.get('extensionEnabled', (result) => {
+      const isEnabled = result.extensionEnabled !== false;
+      if (isEnabled) {
+        humanizeAndReplace(tab.id, info.selectionText);
+      } else {
+        if (tab?.id) {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'showError',
+            error: 'Extension is disabled. Enable it in the popup before using the context menu.'
+          }, () => {});
+        }
+      }
+    });
   }
 });
 
@@ -88,7 +100,16 @@ Return ONLY the rewritten text, no explanations or meta-commentary.`;
 
   if (!response.ok) {
     const errorData = await response.json();
-    const errorMsg = errorData.error?.message || errorData.message || 'API request failed';
+    const rawMessage = errorData.error?.message || errorData.message || 'API request failed';
+    const normalized = String(rawMessage).toLowerCase();
+
+    let errorMsg = rawMessage;
+    if (normalized.includes('quota exceeded') || normalized.includes('rate limit')) {
+      errorMsg = 'Quota exceeded. Check your Google API plan, billing, or usage limits for Gemini.';
+    } else if (normalized.includes('invalid api key') || normalized.includes('api key not valid') || normalized.includes('key invalid')) {
+      errorMsg = 'API key invalid. Please update your key in the extension options.';
+    }
+
     throw new Error(errorMsg);
   }
 
@@ -115,7 +136,7 @@ async function humanizeAndReplace(tabId, selectedText) {
   chrome.tabs.sendMessage(tabId, {
     action: 'showLoading',
     selectedText
-  }).catch(() => {}); // Ignore if content script not ready
+  }, () => {}); // Ignore if content script not ready
 
   try {
     const humanized = await humanizeText(selectedText, tabId, null);
@@ -124,6 +145,6 @@ async function humanizeAndReplace(tabId, selectedText) {
     chrome.tabs.sendMessage(tabId, {
       action: 'showError',
       error: error.message
-    }).catch(() => {});
+    }, () => {});
   }
 }
