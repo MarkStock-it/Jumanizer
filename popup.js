@@ -67,7 +67,7 @@ HOW TO USE JUMANIZER:
 1. Select any AI-generated text on a webpage
    - Click and drag to highlight the text
    
-2. Click the "✨ Humanize" button that appears
+2. Click the Humanize button that appears
    - Or right-click the selection and choose "Humanize this text"
    
 3. The text will be rewritten to sound more human

@@ -2,6 +2,8 @@
 let selectedText = '';
 let selectedRange = null;
 let isEnabled = true;
+let humanizeButton = null;
+let humanizeButtonContainer = null;
 
 // Listen for extension toggle
 chrome.storage.sync.get('extensionEnabled', (result) => {
@@ -21,11 +23,8 @@ document.addEventListener('mouseup', () => {
   const selection = window.getSelection();
   selectedText = selection.toString().trim();
 
-  if (selectedText.length > 0) {
-    // Store the range for later restoration
-    if (selection.rangeCount > 0) {
-      selectedRange = selection.getRangeAt(0);
-    }
+  if (selectedText.length > 0 && selection.rangeCount > 0) {
+    selectedRange = selection.getRangeAt(0);
     showHumanizeButton(selection);
   } else {
     removeHumanizeButton();
@@ -35,46 +34,57 @@ document.addEventListener('mouseup', () => {
 function showHumanizeButton(selection) {
   removeHumanizeButton();
 
-  // Get selection coordinates
   const range = selection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
+  const iconUrl = chrome.runtime.getURL('humanize.svg');
 
-  // Create button container
   const container = document.createElement('div');
   container.id = 'jumanizer-button-container';
   container.style.cssText = `
     position: fixed;
-    top: ${rect.bottom + 5}px;
-    left: ${rect.left}px;
+    top: ${Math.min(window.innerHeight - 48, rect.bottom + 10)}px;
+    left: ${Math.max(12, rect.left)}px;
     z-index: 999999;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    padding: 0;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+    padding: 4px;
+    backdrop-filter: blur(14px);
   `;
 
   const button = document.createElement('button');
-  button.textContent = '✨ Humanize';
+  button.type = 'button';
+  button.innerHTML = `<img src="${iconUrl}" alt="" class="jumanizer-button-icon"><span>Humanize</span>`;
   button.style.cssText = `
-    background: #2563eb;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     color: white;
     border: none;
-    padding: 8px 12px;
-    border-radius: 6px;
+    padding: 11px 16px;
+    border-radius: 14px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
     white-space: nowrap;
+    box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22);
   `;
 
+  const icon = button.querySelector('.jumanizer-button-icon');
+  if (icon) {
+    icon.style.width = '18px';
+    icon.style.height = '18px';
+  }
+
   button.addEventListener('mouseenter', () => {
-    button.style.background = '#1d4ed8';
+    button.style.transform = 'translateY(-1px)';
   });
 
   button.addEventListener('mouseleave', () => {
-    button.style.background = '#2563eb';
+    button.style.transform = 'none';
   });
 
   button.addEventListener('click', (e) => {
@@ -85,30 +95,83 @@ function showHumanizeButton(selection) {
 
   container.appendChild(button);
   document.body.appendChild(container);
+
+  humanizeButton = button;
+  humanizeButtonContainer = container;
 }
 
-function removeHumanizeButton() {
-  const container = document.getElementById('jumanizer-button-container');
-  if (container) {
-    container.remove();
+function setButtonState(label, disabled = false) {
+  if (!humanizeButton) return;
+  const iconUrl = chrome.runtime.getURL('humanize.svg');
+  humanizeButton.innerHTML = `<img src="${iconUrl}" alt="" class="jumanizer-button-icon"><span>${label}</span>`;
+  humanizeButton.disabled = disabled;
+  humanizeButton.style.opacity = disabled ? '0.75' : '1';
+  humanizeButton.style.cursor = disabled ? 'default' : 'pointer';
+  const icon = humanizeButton.querySelector('.jumanizer-button-icon');
+  if (icon) {
+    icon.style.width = '18px';
+    icon.style.height = '18px';
   }
 }
 
-function humanizeSelection() {
-  if (!selectedText) return;
+function removeHumanizeButton() {
+  if (humanizeButtonContainer) {
+    humanizeButtonContainer.remove();
+  }
+  humanizeButton = null;
+  humanizeButtonContainer = null;
+}
 
-  removeHumanizeButton();
-  showLoadingIndicator(selectedText);
+async function humanizeSelection() {
+  if (!selectedText || !humanizeButton) return;
 
-  // Send to background script
+  setButtonState('Humanizing…', true);
+  showLoadingIndicator();
+
   chrome.runtime.sendMessage({
     action: 'humanizeText',
     text: selectedText
-  }, (response) => {
+  }, async (response) => {
     if (response && response.success) {
-      replaceSelectedText(response.humanized);
+      const humanized = response.humanized || '';
+      await copyTextToClipboard(humanized);
+      replaceSelectedText(humanized);
+      setButtonState('Copied', true);
+      setTimeout(removeHumanizeButton, 900);
     } else {
+      setButtonState('Humanize', false);
       showErrorMessage(response?.error || 'Failed to humanize text');
+    }
+  });
+}
+
+function copyTextToClipboard(text) {
+  if (!text) return Promise.resolve();
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  }
+
+  return fallbackCopy(text);
+}
+
+function fallbackCopy(text) {
+  return new Promise((resolve, reject) => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    textarea.style.pointerEvents = 'none';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      successful ? resolve() : reject(new Error('Copy command failed')); 
+    } catch (err) {
+      document.body.removeChild(textarea);
+      reject(err);
     }
   });
 }
@@ -122,8 +185,7 @@ function replaceSelectedText(humanizedText) {
     selectedRange.deleteContents();
     const textNode = document.createTextNode(humanizedText);
     selectedRange.insertNode(textNode);
-    
-    // Clear selection
+
     window.getSelection().removeAllRanges();
     selectedText = '';
     selectedRange = null;
@@ -133,7 +195,7 @@ function replaceSelectedText(humanizedText) {
   }
 }
 
-function showLoadingIndicator(text) {
+function showLoadingIndicator() {
   removeLoadingIndicator();
 
   const loader = document.createElement('div');
@@ -142,21 +204,21 @@ function showLoadingIndicator(text) {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: 0 24px 40px rgba(15, 23, 42, 0.12);
     z-index: 999999;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 14px;
-    color: #333;
-    max-width: 300px;
+    color: #0f172a;
+    max-width: 320px;
   `;
 
   loader.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <div style="width: 16px; height: 16px; border: 2px solid #e0e0e0; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 16px; height: 16px; border: 2px solid #dbeafe; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
       <div>Humanizing...</div>
     </div>
     <style>
@@ -183,16 +245,16 @@ function showErrorMessage(error) {
     bottom: 20px;
     right: 20px;
     background: white;
-    border: 1px solid #fee;
+    border: 1px solid #fee2e2;
     border-left: 4px solid #ef4444;
-    border-radius: 8px;
+    border-radius: 18px;
     padding: 16px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.14);
     z-index: 999999;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 14px;
     color: #991b1b;
-    max-width: 300px;
+    max-width: 320px;
   `;
 
   message.textContent = `Error: ${error}`;
@@ -210,6 +272,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'showError') {
     showErrorMessage(request.error);
   } else if (request.action === 'showLoading') {
-    showLoadingIndicator(request.selectedText);
+    showLoadingIndicator();
   }
 });
